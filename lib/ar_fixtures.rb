@@ -63,13 +63,13 @@ class ActiveRecord::Base
       limit, = *args
       
       options[:limit] = limit if limit
+      includes = options[:include]
+      keep_current_fixtures = options.delete(:keep_current_fixtures)
       
       records = Hash.new do |h, k|
         h[k] = {}
       end
-
-      includes = options[:include]
-
+      
       self.find(:all, options).each do |record|
         record_name = "#{table_name.singularize}_#{'%05i' % record.id}"
         records[table_name][record_name] = record.attributes
@@ -80,6 +80,14 @@ class ActiveRecord::Base
       end
 
       records.each do |current_table_name, records|
+        yaml_file = File.expand_path("test/fixtures/#{current_table_name}.yml", RAILS_ROOT)
+
+        if keep_current_fixtures && File.exists?(yaml_file)
+          if fixtures = YAML::load(ERB.new(File.read(yaml_file)).result)
+            records = fixtures.merge(records)
+          end
+        end
+        
         write_file(File.expand_path("test/fixtures/#{current_table_name}.yml", RAILS_ROOT),
                    records.to_yaml(:SortKeys => true))
       end
