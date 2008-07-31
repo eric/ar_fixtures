@@ -97,6 +97,11 @@ class ActiveRecord::Base
     
     def traverse_includes(target_record, includes, records)
       return unless target_record
+
+      Array(target_record).each do |record|
+	record_name = "#{record.class.table_name.singularize}_#{'%05i' % record.id}"
+	records[record.class.table_name][record_name] = record.attributes
+      end
       
       case includes
       when Array
